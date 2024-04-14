@@ -1,108 +1,47 @@
-import { auth } from "@clerk/nextjs";
-import Image from "next/image";
-import Link from "next/link";
+import { Collection } from "@/components/shared/Collection"
+import { navLinks } from "@/constants"
+import { getAllImages } from "@/lib/actions/image.actions"
+import Image from "next/image"
+import Link from "next/link"
 
-import Header from "@/components/shared/Header";
-import TransformedImage from "@/components/shared/TransformedImage";
-import { Button } from "@/components/ui/button";
-import { getImageById } from "@/lib/actions/image.actions";
-import { getImageSize } from "@/lib/utils";
-import { DeleteConfirmation } from "@/components/shared/DeleteConfirmation";
+const Home = async ({ searchParams }: SearchParamProps) => {
+  const page = Number(searchParams?.page) || 1;
+  const searchQuery = (searchParams?.query as string) || '';
 
-const ImageDetails = async ({ params: { id } }: SearchParamProps) => {
-  const { userId } = auth();
+  const images = await getAllImages({ page, searchQuery})
 
-  try {
-    const image = await getImageById(id);
+  return (
+    <>
+      <section className="home">
+        <h1 className="home-heading">
+        Elevate Your Creative Vision with Wonderize
+        </h1>
+        <ul className="flex-center w-full gap-20">
+          {navLinks.slice(1, 5).map((link) => (
+            <Link
+              key={link.route}
+              href={link.route}
+              className="flex-center flex-col gap-2"
+            >
+              <li className="flex-center w-fit rounded-full bg-white p-4">
+                <Image src={link.icon} alt="image" width={24} height={24} />
+              </li>
+              <p className="p-14-medium text-center text-white">{link.label}</p>
+            </Link>
+          ))}
+        </ul>
+      </section>
 
-    if (!image) {
-      // Handle case where image is not found
-      return <div>Image not found.</div>;
-    }
+      <section className="sm:mt-12">
+        <Collection 
+          hasSearch={true}
+          images={images?.data}
+          totalPages={images?.totalPage}
+          page={page}
+        />
+      </section>
+    </>
+  )
+}
 
-    return (
-      <>
-        <Header title={image.title} />
-
-        <section className="mt-5 flex flex-wrap gap-4">
-          <div className="p-14-medium md:p-16-medium flex gap-2">
-            <p className="text-dark-600">Transformation:</p>
-            <p className="capitalize text-purple-400">{image.transformationType}</p>
-          </div>
-
-          {image.prompt && (
-            <>
-              <p className="hidden text-dark-400/50 md:block">&#x25CF;</p>
-              <div className="p-14-medium md:p-16-medium flex gap-2 ">
-                <p className="text-dark-600">Prompt:</p>
-                <p className="capitalize text-purple-400">{image.prompt}</p>
-              </div>
-            </>
-          )}
-
-          {image.color && (
-            <>
-              <p className="hidden text-dark-400/50 md:block">&#x25CF;</p>
-              <div className="p-14-medium md:p-16-medium flex gap-2">
-                <p className="text-dark-600">Color:</p>
-                <p className="capitalize text-purple-400">{image.color}</p>
-              </div>
-            </>
-          )}
-
-          {image.aspectRatio && (
-            <>
-              <p className="hidden text-dark-400/50 md:block">&#x25CF;</p>
-              <div className="p-14-medium md:p-16-medium flex gap-2">
-                <p className="text-dark-600">Aspect Ratio:</p>
-                <p className="capitalize text-purple-400">{image.aspectRatio}</p>
-              </div>
-            </>
-          )}
-        </section>
-
-        <section className="mt-10 border-t border-dark-400/15">
-          <div className="transformation-grid">
-            {/* MEDIA UPLOADER */}
-            <div className="flex flex-col gap-4">
-              <h3 className="h3-bold text-dark-600">Original</h3>
-
-              <Image
-                width={getImageSize(image.transformationType, image, "width")}
-                height={getImageSize(image.transformationType, image, "height")}
-                src={image.secureURL}
-                alt="image"
-                className="transformation-original_image"
-              />
-            </div>
-
-            {/* TRANSFORMED IMAGE */}
-            <TransformedImage
-              image={image}
-              type={image.transformationType}
-              title={image.title}
-              isTransforming={false}
-              transformationConfig={image.config}
-              hasDownload={true}
-            />
-          </div>
-
-          {userId === image.author.clerkId && (
-            <div className="mt-4 space-y-4">
-              <Button asChild type="button" className="submit-button capitalize">
-                <Link href={`/transformations/${image._id}/update`}>Update Image</Link>
-              </Button>
-
-              <DeleteConfirmation imageId={image._id} />
-            </div>
-          )}
-        </section>
-      </>
-    );
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return <div>Error fetching image.</div>;
-  }
-};
-
-export default ImageDetails;
+export default Home
